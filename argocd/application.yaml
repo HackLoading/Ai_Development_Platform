@@ -1,0 +1,50 @@
+
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ai-platform
+  namespace: argocd
+  # ArgoCD will automatically delete Kubernetes resources when this Application is deleted
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+
+  # Where to pull the Helm chart from
+  source:
+    # REPLACE THIS with your actual Git repository URL
+    repoURL: https://github.com/HackLoading/Ai_Development_Platform.git
+    targetRevision: main
+    path: helm-chart/ai-inference
+
+    helm:
+      releaseName: ai-platform
+      values: |
+        vllm:
+          enabled: false
+          model: "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
+          gpuMemoryUtilization: "0.85"
+        gateway:
+          apiKey: "demo-api-key-12345"
+          logLevel: "INFO"
+
+  # Where to deploy (the local Minikube cluster)
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: ai-platform
+
+  syncPolicy:
+    # Automatically create the namespace if it doesn't exist
+    syncOptions:
+      - CreateNamespace=true
+    # Automatically sync when Git changes are detected
+    automated:
+      prune: true        # Delete K8s resources removed from Git
+      selfHeal: true     # Re-sync if someone manually changes the cluster state
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m

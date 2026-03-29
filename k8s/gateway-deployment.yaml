@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-gateway
+  namespace: ai-platform
+  labels:
+    app: ai-gateway
+    component: api-gateway
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ai-gateway
+  template:
+    metadata:
+      labels:
+        app: ai-gateway
+        component: api-gateway
+    spec:
+      containers:
+        - name: gateway
+          image: ai-gateway:latest
+          imagePullPolicy: Never     # IMPORTANT: use local Minikube image, don't pull from registry
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          env:
+            - name: VLLM_BASE_URL
+              value: "http://host.minikube.internal:8000"
+            - name: GATEWAY_API_KEY
+              value: "demo-api-key-12345"
+            - name: LOG_LEVEL
+              value: "INFO"
+          resources:
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 30

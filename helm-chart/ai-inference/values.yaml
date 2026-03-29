@@ -1,0 +1,47 @@
+# Global
+namespace: ai-platform
+
+# vLLM inference engine configuration
+vllm:
+  image:
+    repository: vllm/vllm-openai
+    tag: latest
+    pullPolicy: IfNotPresent
+  model: "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
+  servedModelName: "tinyllama"
+  gpuMemoryUtilization: "0.85"
+  maxModelLen: 2048
+  dtype: "float16"
+  port: 8000
+  resources:
+    limits:
+      gpu: "1"
+      memory: "6Gi"
+      cpu: "4"
+    requests:
+      gpu: "1"
+      memory: "4Gi"
+      cpu: "2"
+  readinessProbe:
+    initialDelaySeconds: 60
+    periodSeconds: 15
+    failureThreshold: 20
+  modelCacheSize: "5Gi"
+
+# FastAPI gateway configuration
+gateway:
+  image:
+    repository: ai-gateway
+    tag: latest
+    pullPolicy: Never     # Local Minikube image
+  port: 8080
+  nodePort: 30080
+  apiKey: "demo-api-key-12345"
+  logLevel: "INFO"
+  resources:
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+    requests:
+      memory: "256Mi"
+      cpu: "100m"

@@ -1,0 +1,87 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vllm-server
+  namespace: ai-platform
+  labels:
+    app: vllm-server
+    component: inference-engine
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vllm-server
+  template:
+    metadata:
+      labels:
+        app: vllm-server
+        component: inference-engine
+      annotations:
+        # Tell Prometheus to scrape vLLM's built-in metrics endpoint
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+        - name: vllm
+          image: vllm/vllm-openai:latest
+          imagePullPolicy: IfNotPresent
+          args:
+            - "--model"
+            - "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
+            - "--gpu-memory-utilization"
+            - "0.85"
+            - "--max-model-len"
+            - "2048"
+            - "--dtype"
+            - "float16"
+            - "--host"
+            - "0.0.0.0"
+            - "--port"
+            - "8000"
+            - "--served-model-name"
+            - "tinyllama"
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+          resources:
+            limits:
+              nvidia.com/gpu: "1"
+              memory: "6Gi"
+              cpu: "4"
+            requests:
+              nvidia.com/gpu: "1"
+              memory: "4Gi"
+              cpu: "2"
+          env:
+            - name: HUGGING_FACE_HUB_TOKEN
+              value: ""          # Leave empty — TinyLlama is public, no token needed
+            - name: TRANSFORMERS_CACHE
+              value: "/root/.cache/huggingface"
+          volumeMounts:
+            - name: model-cache
+              mountPath: /root/.cache/huggingface
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 60   # Give vLLM time to load the model
+            periodSeconds: 15
+            failureThreshold: 20       # Allow up to 5 minutes for model download
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 120
+            periodSeconds: 30
+            failureThreshold: 5
+      volumes:
+        - name: model-cache
+          emptyDir:
+            sizeLimit: 5Gi
+      # Tolerate GPU node (needed in some setups)
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule

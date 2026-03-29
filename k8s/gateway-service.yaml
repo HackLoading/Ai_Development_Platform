@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-gateway-service
+  namespace: ai-platform
+  labels:
+    app: ai-gateway
+spec:
+  selector:
+    app: ai-gateway
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+      nodePort: 30080   # Access from host at $(minikube ip):30080
+      protocol: TCP
+  type: NodePort
+

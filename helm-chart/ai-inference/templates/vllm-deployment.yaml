@@ -1,0 +1,83 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vllm-server
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: vllm-server
+    component: inference-engine
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+    app.kubernetes.io/version: {{ .Chart.AppVersion }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vllm-server
+  template:
+    metadata:
+      labels:
+        app: vllm-server
+        component: inference-engine
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "{{ .Values.vllm.port }}"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+        - name: vllm
+          image: "{{ .Values.vllm.image.repository }}:{{ .Values.vllm.image.tag }}"
+          imagePullPolicy: {{ .Values.vllm.image.pullPolicy }}
+          args:
+            - "--model"
+            - {{ .Values.vllm.model | quote }}
+            - "--gpu-memory-utilization"
+            - {{ .Values.vllm.gpuMemoryUtilization | quote }}
+            - "--max-model-len"
+            - {{ .Values.vllm.maxModelLen | quote }}
+            - "--dtype"
+            - {{ .Values.vllm.dtype | quote }}
+            - "--host"
+            - "0.0.0.0"
+            - "--port"
+            - {{ .Values.vllm.port | quote }}
+            - "--served-model-name"
+            - {{ .Values.vllm.servedModelName | quote }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.vllm.port }}
+              protocol: TCP
+          resources:
+            limits:
+              nvidia.com/gpu: {{ .Values.vllm.resources.limits.gpu | quote }}
+              memory: {{ .Values.vllm.resources.limits.memory | quote }}
+              cpu: {{ .Values.vllm.resources.limits.cpu | quote }}
+            requests:
+              nvidia.com/gpu: {{ .Values.vllm.resources.requests.gpu | quote }}
+              memory: {{ .Values.vllm.resources.requests.memory | quote }}
+              cpu: {{ .Values.vllm.resources.requests.cpu | quote }}
+          volumeMounts:
+            - name: model-cache
+              mountPath: /root/.cache/huggingface
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.vllm.port }}
+            initialDelaySeconds: {{ .Values.vllm.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.vllm.readinessProbe.periodSeconds }}
+            failureThreshold: {{ .Values.vllm.readinessProbe.failureThreshold }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.vllm.port }}
+            initialDelaySeconds: 120
+            periodSeconds: 30
+            failureThreshold: 5
+      volumes:
+        - name: model-cache
+          emptyDir:
+            sizeLimit: {{ .Values.vllm.modelCacheSize }}
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule
+

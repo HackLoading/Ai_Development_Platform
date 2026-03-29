@@ -9,7 +9,7 @@ vllm:
     pullPolicy: IfNotPresent
   model: "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
   servedModelName: "tinyllama"
-  gpuMemoryUtilization: "0.85"
+  gpuMemoryUtilization: "0.80"
   maxModelLen: 2048
   dtype: "float16"
   port: 8000

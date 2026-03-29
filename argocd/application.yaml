@@ -28,6 +28,7 @@ spec:
         gateway:
           apiKey: "demo-api-key-12345"
           logLevel: "INFO"
+          vllmBaseUrl: "http://host.minikube.internal:8000"
 
   # Where to deploy (the local Minikube cluster)
   destination:

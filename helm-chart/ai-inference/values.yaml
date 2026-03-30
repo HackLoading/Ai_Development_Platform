@@ -3,6 +3,7 @@ namespace: ai-platform
 
 # vLLM inference engine configuration
 vllm:
+  enabled: true
   image:
     repository: vllm/vllm-openai
     tag: latest

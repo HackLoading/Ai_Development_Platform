@@ -16,13 +16,11 @@ vllm:
   port: 8000
   resources:
     limits:
-      gpu: "1"
-      memory: "6Gi"
-      cpu: "4"
+       memory: "6Gi"
+       cpu: "4"
     requests:
-      gpu: "1"
-      memory: "4Gi"
-      cpu: "2"
+       memory: "4Gi"
+       cpu: "2"
   readinessProbe:
     initialDelaySeconds: 60
     periodSeconds: 15

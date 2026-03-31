@@ -1,0 +1,20 @@
+# gitignore
+venv/
+__pycache__/
+*.pyc
+.env
+.idea/
+.vscode/
+pf.log
+*.log
+scripts/*.log
+test/*.log
+ui/*.log
+ai-gateway-deployment.yaml
+load.sh
+test.sh
+test_req.sh
+test_script.sh
+load_test.py
+test_script.py
+patch.json

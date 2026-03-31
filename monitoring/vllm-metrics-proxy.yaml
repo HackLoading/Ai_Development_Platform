@@ -1,0 +1,91 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vllm-metrics-proxy-nginx
+  namespace: ai-platform
+data:
+  default.conf: |
+    server {
+      listen 80;
+
+      # Forward Prometheus to the host vLLM metrics endpoint.
+      location /metrics {
+        proxy_pass http://host.minikube.internal:8000/metrics;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+      }
+
+      # Optional: keep /health working for basic debugging.
+      location /health {
+        proxy_pass http://host.minikube.internal:8000/health;
+      }
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vllm-metrics-proxy
+  namespace: ai-platform
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vllm-metrics-proxy
+  template:
+    metadata:
+      labels:
+        app: vllm-metrics-proxy
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:1.27-alpine
+          ports:
+            - name: http
+              containerPort: 80
+          volumeMounts:
+            - name: nginx-conf
+              mountPath: /etc/nginx/conf.d
+              readOnly: true
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+      volumes:
+        - name: nginx-conf
+          configMap:
+            name: vllm-metrics-proxy-nginx
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vllm-metrics-proxy
+  namespace: ai-platform
+spec:
+  selector:
+    app: vllm-metrics-proxy
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: vllm-metrics-proxy
+  namespace: monitoring
+  labels:
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: vllm-metrics-proxy
+  namespaceSelector:
+    matchNames:
+      - ai-platform
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 15s
+

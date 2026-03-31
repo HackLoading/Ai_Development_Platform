@@ -28,8 +28,10 @@ spec:
               containerPort: {{ .Values.gateway.port }}
               protocol: TCP
           env:
-            - name: VLLM_BASE_URL
-              value: "http://vllm-service:{{ .Values.vllm.port }}"
+            {{- range $key, $value := .Values.gateway.env }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
             - name: GATEWAY_API_KEY
               value: {{ .Values.gateway.apiKey | quote }}
             - name: LOG_LEVEL
@@ -53,4 +55,3 @@ spec:
               port: {{ .Values.gateway.port }}
             initialDelaySeconds: 10
             periodSeconds: 30
-

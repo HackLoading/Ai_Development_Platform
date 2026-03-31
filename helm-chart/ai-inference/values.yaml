@@ -6,7 +6,7 @@ vllm:
 gateway:
   image:
     repository: ai-gateway
-    tag: latest
+    tag: v2
     pullPolicy: Never
   port: 8080
   nodePort: 30080
